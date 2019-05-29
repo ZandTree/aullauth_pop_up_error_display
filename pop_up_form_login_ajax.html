@@ -1,0 +1,274 @@
+<!-- pop-up modal window for login and sign-up -->
+<h3>Why do I need it?</h3>
+<h5>Use allauth: problems to let user see what went wrong in case of form inside pop-up window + ajax</h5>
+<p>Here solution: callback function gets response(incl errors) and identifies them</p>
+<p>jquery helps to display errors in pop-up form </p>
+
+Extra points for attention:
+<p>jquery should be able to work with ajax:ajax.googleapis.com/ajax/libs/jquery/3.4.0/jquery.min.js</p>
+<p>required for project-wide cookie: cdn.jsdelivr.net/npm/js-cookie@2.2.0/src/js.cookie.min.js</p>
+<p>dont' forget your own script.js jn base.html</p>
+<p>js script location: better static/js/script.js</p>
+<p>css can be always adjusted:here only bootstrap built-in</p>
+
+<p>Idea: index.html with navbar (button login\sign-up) with "hidden" modals: 2 div's</p>
+<p>first div: login with {% include '_partials/ajax_login.html'%} where ONLY login form located</p>
+<p>second div: sign-up with {% include '_partials/ajax_supup.html'%} where ONLY signup form located</p>
+<!-- base.htm -->
+<!-- like: -->
+<script src="{% static 'js/jquery-3.3.1.min.js' %}"></script>
+<script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.0/jquery.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/js-cookie@2.2.0/src/js.cookie.min.js">
+
+</script>
+<script src="{% static 'js/main.js' %}"></script>
+<!-- csrftoken script -->
+<script >
+    // csrf_token settings
+    (function(){
+        var csrf_token = Cookies.get('csrftoken');
+        console.log('where is my token:',csrf_token);
+        $.ajaxSetup(
+            {headers:{'X-CSRFToken':csrf_token}}
+        );
+    })();
+</script>
+
+
+<!-- html = nav.html -->
+{% load static %}
+<nav class="navbar navbar-expand-lg navbar-dark bg-primary sticky-top">
+  <div class="container">
+    <a class="navbar-brand" href="{% url 'pages:index' %}">
+      <img src="{% static 'img/logo.png' %}" class="logo" alt="">
+    </a>
+    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNavAltMarkup">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarNavAltMarkup">
+      <ul class="navbar-nav">
+        <li {% if request.path == "/" %}
+            class="nav-item active mr-3"
+            {% else %}
+            class="nav-item mr-3"
+            {% endif %}
+            >
+          <a class="nav-link" href="{% url 'pages:index' %}">Home</a>
+        </li>
+        <li {% if 'about' in request.path  %}
+            class="nav-item active mr-3"
+            {% else %}
+            class="nav-item  mr-3"
+            {% endif %}
+            >
+          <a class="nav-link" href="{% url 'pages:about' %}">About</a>
+        </li>
+
+      </ul>
+      <ul class="navbar-nav ml-auto">
+          {% if user.is_authenticated %}
+          <li class="nav-item mr-3">
+            <a class="nav-link" href="{% url 'account_change_password' %}">
+              <i class="fas fa-sign-in-alt"></i>
+              Change psw {{user}}?</a>
+          </li>
+          <li class="nav-item mr-3">
+            <a class="nav-link" href="{% url 'account_logout' %}">
+              <i class="fas fa-user-plus"></i>Out-Log
+              </a>
+          </li>
+          {% else %}
+            <li class="nav-item mr-3">
+              <a class="nav-link" id="reg"
+                  href="{% url 'account_signup' %}">
+                  <!-- regular allauth sign-up -->
+                <i class="fas fa-user-plus"></i> Register </a>
+            </li>
+            <li class="nav-item mr-3">
+              <a class="nav-link"
+                  href="{% url 'account_login' %}">
+                <i class="fas fa-sign-in-alt"></i>
+                Login</a>
+            </li>
+            <li class="nav-item mr-3">
+              <a class="nav-link need_auth"
+                  href="{% url 'account_login' %}"
+                  data-toggle="modal"
+                  data-target="#loginModal">
+                <i class="fas fa-sign-in-alt"></i>
+                Login\SignUp</a>
+            </li>
+            {% endif %}
+          </ul>
+      </div>
+    </div> <!--container-->
+ </nav>
+{# login modal#}
+<div class="modal fade" id="loginModal">
+    <div class="modal-dialog modal-dialog-centered auth-modal">
+        <div class="modal-content">
+            <!-- modal header -->
+            <div class="modal-header">
+                <h4 class="modal-title">Login</h4>
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+            </div>
+            <!-- model body -->
+            <div class="modal-body">
+                {% include 'account/ajax_login.html'%}
+            </div>
+        </div>
+    </div>
+</div>
+{# signup modal #}
+<div class="modal fade" id="signupModal">
+    <div class="modal-dialog modal-dialog-centered auth-modal">
+        <div class="modal-content">
+            <!-- Modal Header -->
+            <div class="modal-header">
+                <h4 class="modal-title">Sign Up</h4>
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+            </div>
+            <!-- modal body -->
+            <div class="modal-body">
+                {% include 'account/ajax_signup.html'%}
+            </div>
+        </div>
+    </div>
+</div>
+<!-- file account/ajax_login.html -->
+{% load i18n account %}
+
+<form class="login need_auth" method="POST" action="{% url 'account_login' %}">
+    <!-- this p is place for errors -->
+    <p id="loginZoo"></p>
+    {% csrf_token %}
+    <div class="form-group">
+      <label for="username">Username or Email</label>
+      <input type="text" name="login" id="id_login" autofocus="autofocus" class="form-control" required>
+    </div>
+    <div class="form-group">
+      <label for="password">Password</label>
+      <input type="password" name="password" id="id_password" class="form-control" required>
+    </div>
+    <input type="submit" value="Login" class="btn btn-secondary btn-block">
+
+    <p><label for="id_remember">Remember Me:</label>
+            <input type="checkbox" name="remember" id="id_remember">
+    </p>
+    <p><strong>Dont'have account?</strong>
+         <a href="#"
+           class="btn btn-default"
+           data-toggle="modal"
+           data-target="#signupModal"
+           data-dismiss="modal">
+            {% trans "Sign Up" %}
+        </a>
+    </p>
+</form>
+<!-- file account/ajax_signup.html -->
+<!-- see error locations -->
+{% load i18n account %}
+<form class="signup need_auth" id="signup_form" method="POST" action="{% url 'account_signup' %}">
+    {% csrf_token %}
+   <div class="form-group">
+       <!-- location error -->
+      <p id="userName"></p>
+     <label for="username">Username</label>
+     <input type="text" name="username" class="form-control" required>
+
+   </div>
+   <div class="form-group">
+       <!-- location error -->
+       <p id="mail"></p>
+     <label for="email">Email</label>
+     <input type="email" name="email" class="form-control" required>
+   </div>
+   <div class="form-group">
+       <!-- location error -->
+       <p id="psw1"></p>
+     <label for="password1">Password</label>
+     <input type="password" name="password1" class="form-control" required>
+   </div>
+   <div class="form-group">
+       <!-- location error -->
+       <p id="psw2"></p>
+     <label for="password2">Confirm Password</label>
+     <input type="password" name="password2" class="form-control" required>
+   </div>
+
+<input type="submit" value="Register" class="btn btn-secondary btn-block">
+<hr>
+<p><strong>Have already account?</strong>
+         <a href="#"
+            class="btn btn-default"
+            data-toggle="modal"
+            data-target="#loginModal"
+            data-dismiss="modal">
+            {% trans "Sign In" %}
+        </a>
+    </p>
+</form>
+<!-- file script.js -->
+<script >
+    $(".need_auth").submit(function(e){
+            console.log('Inside need_auth');
+            var loginZoo = $("#loginZoo");
+            e.preventDefault();
+             var but_submit = $(this);
+             var url = $(this).attr('action');
+             var data = $(this).serialize();
+             $.ajax({
+                url:url,
+                method:'POST',
+                data:data,
+                success:function(res){
+                    window.location='/';
+                },
+                error:function(res){
+                    console.log('inside errors section');
+                    var errLogin = res.responseJSON.form.errors;
+                    if (errLogin){
+                        loginZoo.html(errLogin);
+                        loginZoo.addClass("alert alert-danger");
+                    }
+
+                    //console.log(res);
+                    var errMail = res.responseJSON.form.fields.email.errors;
+                    var errPsw1 = res.responseJSON.form.fields.password1.errors;
+                    var errPsw2 = res.responseJSON.form.fields.password2.errors;
+                    var errName = res.responseJSON.form.fields.username.errors;
+                    if(errPsw1){
+                        psw1 = $("#psw1");
+                        psw1.html(errPsw1);
+                        psw1.addClass("alert alert-danger");
+
+                    }
+                    if(errPsw2){
+                        $("#psw2").html(errPsw2);
+                        $("#psw2").addClass("alert alert-danger");
+                    }
+                    if(errName){
+                        $("#userName").html(errName);
+                        $("#userName").addClass("alert alert-danger");
+                    }
+                    if(errMail){
+                        $("#mail").html(errMail);
+                        $("#mail").addClass("alert alert-danger");
+                    }
+
+                }
+
+            })
+
+            });
+//ToDFo: make another css class instead of built-in
+// bootstrap "alert alert-danger"
+        // $('.warning').css({
+        //     "color":"red",
+        //     "border":"2px solid red",
+        //     "font-family":"sans-serif",
+        //     "text-align":"center"
+        // });
+
+</script>
